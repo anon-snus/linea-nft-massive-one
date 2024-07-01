@@ -1,6 +1,6 @@
 max_gwei=30
 
-from_sleep=150
+from_sleep=150  # задержка между аккаунтами
 to_sleep=300
 
 linea_rpc= 'https://linea.decubate.com'
@@ -10,7 +10,7 @@ eth_rpc='https://ethereum-rpc.publicnode.com'
 CEX='okx' #binance, okx, mexc, kucoin, gate, huobi, bybit, bitget
 proxy_server='http://l11CQd:ryathpo@47.9.55.230:3000'
 amount=[0.0003,0.0003]
-delay=[10, 20]
+delay=[10, 20] # задержка после вывода
 # api keys
 
 
