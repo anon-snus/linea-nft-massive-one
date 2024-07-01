@@ -7,13 +7,16 @@ import time
 from web3 import Web3
 from web3.eth import AsyncEth
 
-max_gwei=10
+import config
+import withdraw
 
-from_sleep=150
-to_sleep=300
+max_gwei=config.max_gwei
 
-linea_rpc= 'https://linea.decubate.com'
-eth_rpc='https://ethereum-rpc.publicnode.com'
+from_sleep=config.from_sleep
+to_sleep=config.to_sleep
+
+linea_rpc= config.linea_rpc
+eth_rpc= config.eth_rpc
 
 
 # ---------------------------------------
@@ -28,24 +31,39 @@ async def sleep(from_sleep : int | None=150, to_sleep : int | None = 300):
 		time.sleep(1)
 
 
+async def wait_for_balance(wallet_address, balance, web3):
+	while True:
+		balance_new = await web3.eth.get_balance(wallet_address)
+		if balance_new > balance:
+			print(f'Balance is {balance_new / 10 ** 18} Ether, continuing...')
+			break
+		else:
+			await asyncio.sleep(15)
+
+
 async def main():
 	web3 = Web3(provider=Web3.AsyncHTTPProvider(endpoint_uri=linea_rpc, ), modules={'eth': (AsyncEth,)}, middlewares=[])
 	with open('privatekeys.txt') as f:
 		p_keys = f.read().splitlines()
 		random.shuffle(p_keys)
 		for pk in p_keys:
-			cted = Web3(provider=Web3.AsyncHTTPProvider(endpoint_uri=eth_rpc, ), modules={'eth': (AsyncEth,)}, middlewares=[])
-
+			ether = Web3(provider=Web3.AsyncHTTPProvider(endpoint_uri=eth_rpc, ), modules={'eth': (AsyncEth,)}, middlewares=[])
 			while True:
-				gas = int(cted.from_wei((await cted.eth.gas_price), 'Gwei'))
+				gas = int(ether.from_wei((await ether.eth.gas_price), 'Gwei'))
 				if gas>max_gwei:
 					print(f'Current gas price is too high {gas} is higher than {max_gwei}')
 					await asyncio.sleep(10)
 				break
 
 			account = web3.eth.account.from_key(private_key=pk)
-
 			wallet_address = Web3.to_checksum_address(account.address)
+			balance=await web3.eth.get_balance(wallet_address)
+
+			if balance < 0.0003*10**18:
+				amount_to_withdrawal = await withdraw.amount_to_withdraw(config.amount[0], config.amount[1], dec=withdraw.decimal_places)
+				await withdraw.choose_cex(switch_cex=config.CEX, address=wallet_address,amount_to_withdrawal=amount_to_withdrawal, wallet_number=1)
+				await wait_for_balance(wallet_address=wallet_address, balance=balance, web3=web3)
+
 
 			contract = web3.eth.contract(address=contract_address, abi=abi)
 			data = contract.encodeABI('launchpadBuy', args=('0x0c21cfbb', '0x53b93973', 0, 1, [], b''))
@@ -57,8 +75,6 @@ async def main():
 				'to': contract_address, 'data': data, 'value': int(0),
 			}
 
-
-
 			variation_factor = random.uniform(1.01, 1.2)
 			tx['gas'] = int((await web3.eth.estimate_gas(tx))*variation_factor)
 
@@ -66,15 +82,14 @@ async def main():
 			tx_hash = await web3.eth.send_raw_transaction(sign.rawTransaction)
 
 			try:
-				data = await web3.eth.wait_for_transaction_receipt(tx_hash, timeout=200)
-				if 'status' in data and data['status'] == 1:
-					print(f'transaction was successful: {wallet_address}, {tx_hash.hex()}')
-
+				receipt = await web3.eth.wait_for_transaction_receipt(tx_hash, timeout=200)
+				if receipt['status'] == 1:
+					print(f'Transaction successful: {wallet_address}, {tx_hash.hex()}')
 				else:
-					print(f'{wallet_address} | transaction failed {data["transactionHash"].hex()}')
+					print(f'Transaction failed: {wallet_address}, {tx_hash.hex()}')
+			except BaseException as e:
+				print('error')
 
-			except Exception as e:
-				print(f'{wallet_address} | unexpected error in <verif_tx> function')
 
 			await sleep(from_sleep=from_sleep, to_sleep=to_sleep)
 
