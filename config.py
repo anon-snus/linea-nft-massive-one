@@ -6,6 +6,8 @@ to_sleep=300
 linea_rpc= 'https://linea.decubate.com'
 eth_rpc='https://ethereum-rpc.publicnode.com'
 
+random_wallets=True # True/False рандомизировать порядок акков или нет
+
 cex_withdraw=True #True/False выводить с биржи или нет
 CEX='okx' #binance, okx, mexc, kucoin, gate, huobi, bybit, bitget
 proxy_server='http://l11CQd:ryathpo@47.9.55.230:3000'
