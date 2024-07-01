@@ -45,7 +45,8 @@ async def main():
 	web3 = Web3(provider=Web3.AsyncHTTPProvider(endpoint_uri=linea_rpc, ), modules={'eth': (AsyncEth,)}, middlewares=[])
 	with open('privatekeys.txt') as f:
 		p_keys = f.read().splitlines()
-		random.shuffle(p_keys)
+		if config.random_wallets==True:
+			random.shuffle(p_keys)
 		for pk in p_keys:
 			ether = Web3(provider=Web3.AsyncHTTPProvider(endpoint_uri=eth_rpc, ), modules={'eth': (AsyncEth,)}, middlewares=[])
 			while True:
