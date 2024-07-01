@@ -59,7 +59,7 @@ async def main():
 			wallet_address = Web3.to_checksum_address(account.address)
 			balance=await web3.eth.get_balance(wallet_address)
 
-			if balance < 0.0003*10**18:
+			if balance < 0.0003*10**18 and config.cex_withdraw==True:
 				amount_to_withdrawal = await withdraw.amount_to_withdraw(config.amount[0], config.amount[1], dec=withdraw.decimal_places)
 				await withdraw.choose_cex(switch_cex=config.CEX, address=wallet_address,amount_to_withdrawal=amount_to_withdrawal, wallet_number=1)
 				await wait_for_balance(wallet_address=wallet_address, balance=balance, web3=web3)
@@ -76,19 +76,23 @@ async def main():
 			}
 
 			variation_factor = random.uniform(1.01, 1.2)
-			tx['gas'] = int((await web3.eth.estimate_gas(tx))*variation_factor)
-
-			sign = web3.eth.account.sign_transaction(tx, account.key)
-			tx_hash = await web3.eth.send_raw_transaction(sign.rawTransaction)
-
 			try:
-				receipt = await web3.eth.wait_for_transaction_receipt(tx_hash, timeout=200)
-				if receipt['status'] == 1:
-					print(f'Transaction successful: {wallet_address}, {tx_hash.hex()}')
-				else:
-					print(f'Transaction failed: {wallet_address}, {tx_hash.hex()}')
-			except BaseException as e:
-				print('error')
+				tx['gas'] = int((await web3.eth.estimate_gas(tx))*variation_factor)
+				sign = web3.eth.account.sign_transaction(tx, account.key)
+				tx_hash = await web3.eth.send_raw_transaction(sign.rawTransaction)
+
+				try:
+					receipt = await web3.eth.wait_for_transaction_receipt(tx_hash, timeout=200)
+					if receipt['status'] == 1:
+						print(f'Transaction successful: wallet: {wallet_address}, tx_hash: {tx_hash.hex()}')
+					else:
+						print(f'Transaction failed: {wallet_address}, {tx_hash.hex()}')
+				except BaseException as e:
+					print('error')
+			except Exception as e:
+				print(f'Error {wallet_address} already claimed')
+
+
 
 
 			await sleep(from_sleep=from_sleep, to_sleep=to_sleep)
