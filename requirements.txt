@@ -1,0 +1,5 @@
+asyncio~=3.4.3
+tqdm~=4.65.2
+web3~=6.20.0
+ccxt~=3.0.107
+requests~=2.31.0
